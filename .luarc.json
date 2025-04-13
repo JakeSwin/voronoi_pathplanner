@@ -1,0 +1,4 @@
+{
+  "workspace.library": ["./scripts"],
+  "diagnostics.globals": ["Game"]
+}
