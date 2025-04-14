@@ -39,9 +39,18 @@ void Game::Screenshot(const char* filepath) {
     BeginTextureMode(target);
     ClearBackground(RAYWHITE); // Clear the texture with a background color
 
-    // Redraw everything onto the render texture
-    DrawTexture(image->GetTexture(), 0, 0, WHITE); // Draw the image
-    DrawCircle(50, 50, 25, RED);                  // Example: Draw a circle
+    DrawTexture(image->GetTexture(), 0, 0, WHITE);
+    if (!output_points.empty())
+    {
+        for (int i = 0; i < output_points.size(); ++i)
+        {
+            DrawCircle(
+                (int)round(output_points[i].x * image->Width()),
+                (int)round(output_points[i].y * image->Height()),
+                1.0, RED
+            );
+        }
+    }
 
     EndTextureMode(); // Finish rendering to the texture
 

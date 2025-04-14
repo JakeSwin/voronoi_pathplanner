@@ -3,9 +3,14 @@
 
 #include "game.hpp"
 
-int main(void) {
+int main(int argc, char* argv[]) {
     sol::state lua;
-    lua.open_libraries(sol::lib::base, sol::lib::package);
+    lua.open_libraries(
+        sol::lib::base,
+        sol::lib::package,
+        sol::lib::table,
+        sol::lib::string
+    );
 
     lua.new_usertype<Game>(
         "Game",
@@ -22,7 +27,11 @@ int main(void) {
         "SetWeightMult", &Game::SetWeightMult
     );
 
-    lua.script_file("./scripts/main.lua");
+    if (argc > 1) {
+        lua.script_file(argv[1]);
+    } else {
+        lua.script_file("./scripts/main.lua");
+    }
 
     return 0;
 }
