@@ -16,6 +16,11 @@ function Game:Step() end
 ---@return nil
 function Game:SetImage(imagepath) end
 
+---Generates a weighted voronoi diagram using current initial sample
+---@param num_iters number how many iterations to run for
+---@return boolean
+function Game:GenerateVoronoi(num_iters) end
+
 ---Takes a screenshot of the current frame and saves it to the specified file
 ---@param imagepath string The path to the image file
 ---@return nil

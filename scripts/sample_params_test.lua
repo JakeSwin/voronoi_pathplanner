@@ -11,18 +11,21 @@ local images = {
     "fisk.png",
     "gp_map_grey_inv.png",
 }
+
 -- local alphaList = { 8, 10, 12 }
 -- local betaList = { 0.65, 0, 0.35, 0.9 }
 -- local gammaList = { 1.5, 1, 2 }
 -- local maxDistMultList = { 2, 3, 1, 4 }
 -- local weightFactorList = { 3, 2, 4 }
 -- local weightMultList = { 2, 1.5, 2.5, 3 }
-local alphaList = { 8, 12 }
-local betaList = { 0.65, 0, 0.9 }
-local gammaList = { 1.5, 1, 2 }
+
+local alphaList = { 12 }
+local betaList = { 0.65, 0 }
+local gammaList = { 1.5, 1 }
 local maxDistMultList = { 2, 3, 1 }
 local weightFactorList = { 3, 2, 4 }
 local weightMultList = { 2, 1.5, 2.5 }
+local numSamples = { 3000, 1000, 500 }
 
 local testParams = {
     alphaList,
@@ -30,7 +33,8 @@ local testParams = {
     gammaList,
     maxDistMultList,
     weightFactorList,
-    weightMultList
+    weightMultList,
+    numSamples
 }
 
 -- Generate Cartesian product
@@ -57,30 +61,9 @@ for _, combo in ipairs(combinations) do
     local imageIndex = 1
     local iterCount = 1
 
-    -- g:Sample(20000, 5000)
-    -- while not g:Step() do
-    --     if iterCount >= numIters then
-    --         g:Screenshot(
-    --             resultPath ..
-    --             paramName ..
-    --             "_" ..
-    --             images[imageIndex]
-    --         )
-    --         iterCount = 1
-    --         if imageIndex == #images then
-    --             imageIndex = 1
-    --             break
-    --         else
-    --             imageIndex = imageIndex + 1
-    --         end
-    --         g:SetImage(imagePath .. images[imageIndex])
-    --         g:Sample(20000, 5000)
-    --     else
-    --         iterCount = iterCount + 1
-    --     end
-    -- end
     g:SetImage(imagePath .. images[imageIndex])
-    g:Sample(20000, 5000)
+    g:Sample(20000, combo[7])
+    g:GenerateVoronoi(75)
 
     while imageIndex <= #images and not g:Step() do
         if iterCount >= numIters then
@@ -96,7 +79,8 @@ for _, combo in ipairs(combinations) do
                 break
             end
             g:SetImage(imagePath .. images[imageIndex])
-            g:Sample(20000, 5000)
+            g:Sample(20000, combo[7])
+            g:GenerateVoronoi(75)
         else
             iterCount = iterCount + 1
         end
