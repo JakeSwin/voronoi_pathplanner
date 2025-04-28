@@ -4,3 +4,5 @@ results/
 results1/
 Makefile
 VoroPathplanner.make
+.cache/
+compile_commands.json
