@@ -14,7 +14,7 @@ local images = {
     "gp_map_grey_inv.png",
 }
 
-local numIters = 75
+local numIters = 300
 
 print("Running lua script")
 

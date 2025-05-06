@@ -2,6 +2,7 @@ bin/Debug
 obj/Debug
 results/
 results1/
+ppresults/
 Makefile
 VoroPathplanner.make
 .cache/

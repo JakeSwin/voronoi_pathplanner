@@ -1,9 +1,15 @@
+#include <cmath>
+#include <iostream>
+#include <raylib.h>
+
 #include "planner.hpp"
 #include "util.hpp"
 
 void Planner::Move() {
   const jcv_site *sites = jcv_diagram_get_sites(&diagram);
-  int current_site_idx = -1;
+  unique_neighbours.clear();
+  current_site_idx = -1;
+
   for (int i = 0; i < diagram.numsites; ++i) {
     const jcv_site *site = &sites[i];
 
@@ -16,17 +22,190 @@ void Planner::Move() {
 
     while (edge) {
       site_xs[nvert] = edge->pos[0].x;
-      site_ys[nvert] = edge->pos[0].x;
+      site_ys[nvert] = edge->pos[0].y;
       ++nvert;
       edge = edge->next;
     }
 
     if (util::pnpoly(nvert, site_xs, site_ys, currentPos.x, currentPos.y)) {
-        // Save index of site we are contained in.
-        current_site_idx = i;
-        break;
+      // Save index of site we are contained in.
+      current_site_idx = i;
+    }
+    for (const jcv_point &pos : path) {
+      if (util::pnpoly(nvert, site_xs, site_ys, pos.x, pos.y)) {
+        const jcv_graphedge *edge = site->edges;
+        while (edge) {
+          if (edge->neighbor) {
+            // Save index of path neighbours
+            unique_neighbours.insert(edge->neighbor->p);
+          }
+          edge = edge->next;
+        }
+      }
     }
   }
 
-  //edge->neighbor->p
+  // Bad design but possible could add additional weight here
+  // to make local neighbours more attractive
+  if (current_site_idx != -1) {
+    const jcv_site *current_site = &sites[current_site_idx];
+    const jcv_graphedge *edge = current_site->edges;
+    while (edge) {
+      if (edge->neighbor) {
+        unique_neighbours.insert(edge->neighbor->p);
+      }
+      edge = edge->next;
+    }
+
+  }
+
+  // Prune already visited positions from neighbour list0
+  for (const jcv_point &p : path) {
+    unique_neighbours.erase(p);
+  }
+
+  unique_neighbours.erase(currentPos);
+
+  float closestDist = MAXFLOAT;
+  jcv_point closest_point;
+  for (const jcv_point &p : unique_neighbours) {
+    // Check distance between current pos and neighbour point
+    float dist = std::hypot(p.x - currentPos.x, p.y - currentPos.y);
+    // Save closest point
+    if (dist < closestDist) {
+      closestDist = dist;
+      closest_point = p;
+    }
+  }
+
+  // Set new position and append to the path
+  path.push_back(currentPos);
+  currentPos = closest_point;
+
+  std::cout << "Next pos: x: " << currentPos.x << " y: " << currentPos.y << std::endl;
+}
+
+// void Planner::Draw(int img_width, int img_height) {
+//   const jcv_site *sites = jcv_diagram_get_sites(&diagram);
+//   for (const int i : unique_neighbours) {
+//     const jcv_site *site = &sites[i];
+//     int nvert = 0;
+//     Vector2 site_vtxs[20];
+
+//     const jcv_graphedge *edge = site->edges;
+
+//     while (edge) {
+//       site_vtxs[nvert].x = edge->pos[0].x * img_width;
+//       site_vtxs[nvert].y = edge->pos[0].y * img_height;
+//       ++nvert;
+//       edge = edge->next;
+//     }
+
+//     DrawTriangleFan(site_vtxs, nvert, YELLOW);
+//   }
+//   for (const int i : path_idxs) {
+//     const jcv_site *site = &sites[i];
+//     int nvert = 0;
+//     Vector2 site_vtxs[20];
+
+//     const jcv_graphedge *edge = site->edges;
+
+//     while (edge) {
+//       site_vtxs[nvert].x = edge->pos[0].x * img_width;
+//       site_vtxs[nvert].y = edge->pos[0].y * img_height;
+//       ++nvert;
+//       edge = edge->next;
+//     }
+
+//     DrawTriangleFan(site_vtxs, nvert, BLUE);
+//   }
+//   if (current_site_idx != -1) {
+//     const jcv_site *site = &sites[current_site_idx];
+//     int nvert = 0;
+//     Vector2 site_vtxs[20];
+
+//     const jcv_graphedge *edge = site->edges;
+
+//     while (edge) {
+//       site_vtxs[nvert].x = edge->pos[0].x * img_width;
+//       site_vtxs[nvert].y = edge->pos[0].y * img_height;
+//       ++nvert;
+//       edge = edge->next;
+//     }
+
+//     DrawTriangleFan(site_vtxs, nvert, GREEN);
+
+//     DrawCircle((int)round(currentPos.x * img_width),
+//                (int)round(currentPos.y * img_height), 5.0, PURPLE);
+//   }
+// }
+
+// void Planner::Draw(int img_width, int img_height) {
+//   const jcv_site* sites = jcv_diagram_get_sites(&diagram);
+
+//   auto drawSite = [&](int site_index, Color color) {
+//     const jcv_site* site = &sites[site_index];
+//     std::vector<Vector2> vertices;
+
+//     vertices.emplace_back(Vector2{
+//         site->p.x * img_width,
+//         site->p.y * img_height
+//     });
+
+//     const jcv_graphedge* edge = site->edges;
+//     while (edge) {
+//       // Use pos[1] instead of pos[0]
+//       vertices.emplace_back(Vector2{
+//           edge->pos[0].x * img_width,
+//           edge->pos[0].y * img_height
+//       });
+//       edge = edge->next;
+//     }
+
+//     if (!vertices.empty()) {
+//       // Close the polygon
+//       // vertices.push_back(vertices[0]);
+
+//       // Use polygon drawing instead of triangle fan
+//       DrawTriangleFan(vertices.data(), vertices.size(), color);
+//     }
+//   };
+
+//   // Draw unique neighbors
+//   for (int i : unique_neighbours) {
+//     drawSite(i, YELLOW);
+//   }
+
+//   // Draw path
+//   for (int i : path_idxs) {
+//     drawSite(i, BLUE);
+//   }
+
+//   // Draw current site
+//   if (current_site_idx != -1) {
+//     drawSite(current_site_idx, GREEN);
+//     DrawCircle((int)round(currentPos.x * img_width),
+//                (int)round(currentPos.y * img_height), 5.0, PURPLE);
+//   }
+// }
+
+void Planner::Draw(int img_width, int img_height) {
+
+  // Draw unique neighbors
+  for (const jcv_point &p : unique_neighbours) {
+    DrawCircle((int)round(p.x * img_width),
+               (int)round(p.y * img_height), 5.0, YELLOW);
+  }
+
+  // Draw path
+  for (const jcv_point &p : path) {
+    DrawCircle((int)round(p.x * img_width),
+               (int)round(p.y * img_height), 5.0, BLUE);
+  }
+
+  // Draw current site
+  if (current_site_idx != -1) {
+    DrawCircle((int)round(currentPos.x * img_width),
+               (int)round(currentPos.y * img_height), 5.0, PURPLE);
+  }
 }

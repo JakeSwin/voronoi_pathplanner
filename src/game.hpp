@@ -5,7 +5,9 @@
 #include "external/cySampleElim.hpp"
 #include "external/cyVector.hpp"
 #include "external/jc_voronoi.h"
+
 #include "image_loader.hpp"
+#include "planner.hpp"
 
 class Game {
 public:
@@ -17,6 +19,7 @@ public:
   void Screenshot(const char *filepath);
   void Sample(int input_size, int output_size);
   bool GenerateVoronoi(int num_iters);
+  void MovePlanner() { planner.Move(); };
 
   // Setting hyperparameters
   void SetParamAlpha(float x) { wse.SetParamAlpha(x); }
@@ -28,15 +31,19 @@ public:
 
 private:
   void Render();
+  void DrawColouredVoronoi();
   void RelaxPoints();
 
   std::shared_ptr<ImageLoader> image;
   jcv_diagram diagram;
 
+  Planner planner;
+
   cy::WeightedSampleElimination<cy::Vec2f, float, 2, int> wse;
   std::vector<cy::Vec2f> input_points;
   std::vector<cy::Vec2f> output_points;
   std::vector<jcv_point> voro_points;
+  std::vector<Color> voro_colours;
 
   float d_max_mult = 2.0f;
   float weight_factor = 3.0f;

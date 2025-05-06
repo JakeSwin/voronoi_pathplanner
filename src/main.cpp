@@ -20,7 +20,8 @@ int main(int argc, char *argv[]) {
       "SetParamGamma", &Game::SetParamGamma,
       "SetMaxDistanceMultiplier", &Game::SetMaxDistanceMultiplier,
       "SetWeightFactor", &Game::SetWeightFactor,
-      "SetWeightMult", &Game::SetWeightMult);
+      "SetWeightMult", &Game::SetWeightMult,
+      "MovePlanner", &Game::MovePlanner);
 
   if (argc > 1) {
     lua.script_file(argv[1]);
