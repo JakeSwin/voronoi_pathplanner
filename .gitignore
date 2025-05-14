@@ -3,6 +3,7 @@ obj/Debug
 results/
 results1/
 ppresults/
+resultsvoro/
 Makefile
 VoroPathplanner.make
 .cache/

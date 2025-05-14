@@ -6,7 +6,7 @@
 int main(int argc, char *argv[]) {
   sol::state lua;
   lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::table,
-                     sol::lib::string);
+                     sol::lib::string, sol::lib::io, sol::lib::os);
 
   lua.new_usertype<Game>(
       "Game", sol::constructors<Game(const char *, const char *)>(),
@@ -21,7 +21,9 @@ int main(int argc, char *argv[]) {
       "SetMaxDistanceMultiplier", &Game::SetMaxDistanceMultiplier,
       "SetWeightFactor", &Game::SetWeightFactor,
       "SetWeightMult", &Game::SetWeightMult,
-      "MovePlanner", &Game::MovePlanner);
+      "MovePlanner", &Game::MovePlanner,
+      "GetNeighbourCount", &Game::GetNeighbourCount
+  );
 
   if (argc > 1) {
     lua.script_file(argv[1]);

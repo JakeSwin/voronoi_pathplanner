@@ -23,7 +23,8 @@ class Planner {
 public:
   Planner(const jcv_diagram &diagram, jcv_point startPos)
       : currentPos(startPos), diagram(diagram) {}
-  void Move();
+  float Move();
+  int GetNeighbourCount();
   void Draw(int img_width, int img_height);
 
 private:

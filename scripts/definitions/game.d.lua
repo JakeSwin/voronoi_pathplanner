@@ -21,9 +21,13 @@ function Game:SetImage(imagepath) end
 ---@return boolean
 function Game:GenerateVoronoi(num_iters) end
 
----Step the planner forward, must be ran after GenerateVoronoi
----@return nil
+---Step the planner forward, must be ran after GenerateVoronoi, returns coverage amount
+---@return number
 function Game:MovePlanner() end
+
+---Gets the number of neighbours currently in the planner
+---@return number
+function Game:GetNeighbourCount() end
 
 ---Takes a screenshot of the current frame and saves it to the specified file
 ---@param imagepath string The path to the image file

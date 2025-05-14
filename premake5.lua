@@ -5,6 +5,7 @@ project "VoroPathplanner"
 kind "ConsoleApp"
 language "C++"
 cppdialect "C++17"
+toolset "gcc-14"
 targetdir "bin/%{cfg.buildcfg}"
 
 files { "./src/**.cpp", "./src/**.hpp" }

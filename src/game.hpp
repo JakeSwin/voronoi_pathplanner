@@ -19,7 +19,8 @@ public:
   void Screenshot(const char *filepath);
   void Sample(int input_size, int output_size);
   bool GenerateVoronoi(int num_iters);
-  void MovePlanner() { planner.Move(); };
+  float MovePlanner() { return planner.Move(); };
+  int GetNeighbourCount() { return planner.GetNeighbourCount(); };
 
   // Setting hyperparameters
   void SetParamAlpha(float x) { wse.SetParamAlpha(x); }

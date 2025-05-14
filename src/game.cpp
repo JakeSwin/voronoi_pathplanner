@@ -53,6 +53,12 @@ void Game::Screenshot(const char *filepath) {
   ClearBackground(RAYWHITE); // Clear the texture with a background color
 
   DrawTexture(image->GetTexture(), 0, 0, WHITE);
+  if (!output_points.empty() && voro_points.empty()) {
+    for (int i = 0; i < output_points.size(); ++i) {
+      DrawCircle((int)round(output_points[i].x * image->Width()),
+                 (int)round(output_points[i].y * image->Height()), 2.0, RED);
+    }
+  }
   if (!voro_points.empty()) {
     const jcv_edge *edge = jcv_diagram_get_edges(&diagram);
     for (int i = 0; i < voro_points.size(); ++i) {
@@ -67,12 +73,7 @@ void Game::Screenshot(const char *filepath) {
       edge = jcv_diagram_get_next_edge(edge);
     }
     planner.Draw(image->Width(), image->Height());
-  }
-  if (!output_points.empty()) {
-    for (int i = 0; i < output_points.size(); ++i) {
-      DrawCircle((int)round(output_points[i].x * image->Width()),
-                 (int)round(output_points[i].y * image->Height()), 1.0, RED);
-    }
+    // DrawColouredVoronoi();
   }
 
   EndTextureMode(); // Finish rendering to the texture
@@ -342,7 +343,7 @@ void Game::Render() {
       edge = jcv_diagram_get_next_edge(edge);
     }
     planner.Draw(image->Width(), image->Height());
-    DrawColouredVoronoi();
+    // DrawColouredVoronoi();
   }
   EndDrawing();
 }

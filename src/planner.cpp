@@ -1,12 +1,24 @@
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <raylib.h>
 
 #include "planner.hpp"
 #include "util.hpp"
 
-void Planner::Move() {
+float polygon_area(int nvert, float *vertx, float *verty) {
+  float s1 = 0.0f;
+  float s2 = 0.0f;
+  for (int i = 0; i < nvert; i++) {
+    s1 += vertx[i] * verty[(i+1) % nvert];
+    s2 += verty[i] * vertx[(i+1) % nvert];
+  }
+  return 0.5f * abs(s1 - s2);
+}
+
+float Planner::Move() {
   const jcv_site *sites = jcv_diagram_get_sites(&diagram);
+  float total_coverage_area = 0.0f;
   unique_neighbours.clear();
   current_site_idx = -1;
 
@@ -27,12 +39,16 @@ void Planner::Move() {
       edge = edge->next;
     }
 
+    float poly_area = polygon_area(nvert, site_xs, site_ys);
+
     if (util::pnpoly(nvert, site_xs, site_ys, currentPos.x, currentPos.y)) {
+      total_coverage_area += poly_area;
       // Save index of site we are contained in.
       current_site_idx = i;
     }
     for (const jcv_point &pos : path) {
       if (util::pnpoly(nvert, site_xs, site_ys, pos.x, pos.y)) {
+        total_coverage_area += poly_area;
         const jcv_graphedge *edge = site->edges;
         while (edge) {
           if (edge->neighbor) {
@@ -83,6 +99,11 @@ void Planner::Move() {
   currentPos = closest_point;
 
   std::cout << "Next pos: x: " << currentPos.x << " y: " << currentPos.y << std::endl;
+  return total_coverage_area;
+}
+
+int Planner::GetNeighbourCount() {
+  return unique_neighbours.size();
 }
 
 // void Planner::Draw(int img_width, int img_height) {
