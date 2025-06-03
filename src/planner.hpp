@@ -2,8 +2,8 @@
 #include <functional>
 #include <vector>
 
-#include "external/cyVector.hpp"
-#include "external/jc_voronoi.h"
+#include "cyVector.hpp"
+#include "jc_voronoi.h"
 #include "unordered_set"
 
 struct JCVPointHash {

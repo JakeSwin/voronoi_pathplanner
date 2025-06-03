@@ -2,9 +2,9 @@
 #include <raylib.h>
 #include <vector>
 
-#include "external/cySampleElim.hpp"
-#include "external/cyVector.hpp"
-#include "external/jc_voronoi.h"
+#include "cySampleElim.hpp"
+#include "cyVector.hpp"
+#include "jc_voronoi.h"
 
 #include "image_loader.hpp"
 #include "planner.hpp"

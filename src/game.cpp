@@ -5,18 +5,18 @@
 #include <iostream>
 #include <raylib.h>
 
-#include "external/cyVector.hpp"
+#include "cyVector.hpp"
 #include "planner.hpp"
 
 #define JC_VORONOI_IMPLEMENTATION
-#include "external/jc_voronoi.h"
+#include "jc_voronoi.h"
 
 #include "image_loader.hpp"
 #include "util.hpp"
 
 Game::Game(const char *imagepath, const char *title)
     : planner(diagram, jcv_point{0.1f, 0.1f}) {
-  InitWindow(100, 100, title);
+  InitWindow(90, 90, title);
   SetWindowState(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(60);
   SetImage(imagepath);

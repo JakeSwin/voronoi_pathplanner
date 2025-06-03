@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "./external/stb_image.h"
+#include "stb_image.h"
 
 ImageLoader::ImageLoader(const char *filepath) {
   int channels_in_file;

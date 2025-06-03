@@ -1,6 +1,6 @@
 #pragma once
 
-#include "external/jc_voronoi.h"
+#include "jc_voronoi.h"
 
 namespace util {
     // Test if a point is contained within a polygon, https://wrfranklin.org/Research/Short_Notes/pnpoly.html
