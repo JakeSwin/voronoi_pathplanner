@@ -36,7 +36,7 @@ while not g:Step() do
         g:Screenshot(resultPath .. images[imageIndex])
         imageIndex = (imageIndex % #images) + 1
         iterCount = 1
-        g:SetImage(imagePath .. images[imageIndex])
+        g:SetImage(imagePath .. images[imageIndex], false)
         g:Sample(20000, 500)
     else
         iterCount = iterCount + 1

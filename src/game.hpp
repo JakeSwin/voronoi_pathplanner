@@ -6,7 +6,8 @@
 #include "cyVector.hpp"
 #include "jc_voronoi.h"
 
-#include "image_loader.hpp"
+#include "image_data.hpp"
+#include "gp_data.hpp"
 #include "planner.hpp"
 
 class Game {
@@ -15,7 +16,7 @@ public:
   ~Game();
 
   bool Step();
-  void SetImage(const char *filepath);
+  void SetImage(const char *filepath, bool use_gp);
   void Screenshot(const char *filepath);
   void Sample(int input_size, int output_size);
   bool GenerateVoronoi(int num_iters);
@@ -35,7 +36,9 @@ private:
   void DrawColouredVoronoi();
   void RelaxPoints();
 
-  std::shared_ptr<ImageLoader> image;
+  ImageData image;
+  Texture2D texture;
+  GPData gp;
   jcv_diagram diagram;
 
   Planner planner;
@@ -45,6 +48,8 @@ private:
   std::vector<cy::Vec2f> output_points;
   std::vector<jcv_point> voro_points;
   std::vector<Color> voro_colours;
+  std::vector<double> voro_means;
+  std::vector<double> voro_covs;
 
   float d_max_mult = 2.0f;
   float weight_factor = 3.0f;

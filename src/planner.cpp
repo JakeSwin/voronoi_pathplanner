@@ -20,6 +20,7 @@ float Planner::Move() {
   const jcv_site *sites = jcv_diagram_get_sites(&diagram);
   float total_coverage_area = 0.0f;
   unique_neighbours.clear();
+  point_to_site_idx.clear();
   current_site_idx = -1;
 
   for (int i = 0; i < diagram.numsites; ++i) {
@@ -54,6 +55,7 @@ float Planner::Move() {
           if (edge->neighbor) {
             // Save index of path neighbours
             unique_neighbours.insert(edge->neighbor->p);
+            point_to_site_idx[edge->neighbor->p] = edge->neighbor->index;
           }
           edge = edge->next;
         }
@@ -69,6 +71,7 @@ float Planner::Move() {
     while (edge) {
       if (edge->neighbor) {
         unique_neighbours.insert(edge->neighbor->p);
+        point_to_site_idx[edge->neighbor->p] = edge->neighbor->index;
       }
       edge = edge->next;
     }
@@ -78,18 +81,26 @@ float Planner::Move() {
   // Prune already visited positions from neighbour list0
   for (const jcv_point &p : path) {
     unique_neighbours.erase(p);
+    point_to_site_idx.erase(p);
   }
 
   unique_neighbours.erase(currentPos);
+  point_to_site_idx.erase(currentPos);
 
-  float closestDist = MAXFLOAT;
+  float smallestVal = MAXFLOAT;
   jcv_point closest_point;
   for (const jcv_point &p : unique_neighbours) {
     // Check distance between current pos and neighbour point
-    float dist = std::hypot(p.x - currentPos.x, p.y - currentPos.y);
+    float value = std::hypot(p.x - currentPos.x, p.y - currentPos.y);
+    // Negate so smallest is chosen (move towards largest mean + cov)
+    if (gp.initialized) {
+      float mean = -voro_means[point_to_site_idx[p]];
+      float cov = -voro_covs[point_to_site_idx[p]];
+      value = (0.33 * value) + (0.33 * mean) + (0.33 * cov);
+    }
     // Save closest point
-    if (dist < closestDist) {
-      closestDist = dist;
+    if (value < smallestVal) {
+      smallestVal = value;
       closest_point = p;
     }
   }

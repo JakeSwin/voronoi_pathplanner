@@ -20,4 +20,4 @@ set_vis_diagram(vis, diagram)
 set_vis_pp(vis, pp)
 set_vis_gp(vis, gp)
 
-render(vis)
+render_frame(vis)

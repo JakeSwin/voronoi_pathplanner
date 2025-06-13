@@ -13,8 +13,9 @@ function Game:Step() end
 
 ---Sets the image the pathplanner runs on
 ---@param imagepath string The path to the image file
+---@param use_gp boolean Should the image train a GP
 ---@return nil
-function Game:SetImage(imagepath) end
+function Game:SetImage(imagepath, use_gp) end
 
 ---Generates a weighted voronoi diagram using current initial sample
 ---@param num_iters number how many iterations to run for

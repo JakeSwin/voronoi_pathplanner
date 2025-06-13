@@ -28,6 +28,7 @@ int main(int argc, char *argv[]) {
   if (argc > 1) {
     lua.script_file(argv[1]);
   } else {
+    // Default script
     lua.script_file("./scripts/main.lua");
   }
 

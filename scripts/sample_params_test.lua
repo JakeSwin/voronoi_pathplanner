@@ -61,7 +61,7 @@ for _, combo in ipairs(combinations) do
     local imageIndex = 1
     local iterCount = 1
 
-    g:SetImage(imagePath .. images[imageIndex])
+    g:SetImage(imagePath .. images[imageIndex], false)
     g:Sample(20000, combo[7])
     g:GenerateVoronoi(75)
 
@@ -78,7 +78,7 @@ for _, combo in ipairs(combinations) do
             if imageIndex > #images then
                 break
             end
-            g:SetImage(imagePath .. images[imageIndex])
+            g:SetImage(imagePath .. images[imageIndex], false)
             g:Sample(20000, combo[7])
             g:GenerateVoronoi(75)
         else

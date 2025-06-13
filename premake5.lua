@@ -7,6 +7,9 @@ language "C++"
 cppdialect "C++17"
 toolset "gcc-14"
 targetdir "bin/%{cfg.buildcfg}"
+openmp "On"
+buildoptions { "-fopenmp" }
+linkoptions { "-fopenmp" }
 
 files { "./src/**.cpp", "./src/**.hpp" }
 includedirs {

@@ -37,7 +37,7 @@ while not g:Step() do
     else
         iterCount = iterCount + 1
     end
-    g:SetImage(imagePath .. gpMap[imageIndex] .. "_" .. (iterCount - 1) .. ".png")
+    g:SetImage(imagePath .. gpMap[imageIndex] .. "_" .. (iterCount - 1) .. ".png", false)
     local start_time = os.clock()
     g:Sample(20000, 500)
     g:GenerateVoronoi(75)

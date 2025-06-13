@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
+#include <filesystem>
+#include <string>
+#include <numeric>
 #include <raylib.h>
 
 #include "cyVector.hpp"
@@ -11,15 +14,25 @@
 #define JC_VORONOI_IMPLEMENTATION
 #include "jc_voronoi.h"
 
-#include "image_loader.hpp"
 #include "util.hpp"
 
+double mean(const std::vector<double>& v) {
+    if (v.empty()) return 0.0; // or handle as appropriate
+    double sum = std::accumulate(v.begin(), v.end(), 0.0);
+    return sum / v.size();
+}
+
+std::string append_gp_before_extension(const std::string& filepath) {
+    std::filesystem::path p(filepath);
+    return (p.parent_path() / (p.stem().string() + "_gp" + p.extension().string())).string();
+}
+
 Game::Game(const char *imagepath, const char *title)
-    : planner(diagram, jcv_point{0.1f, 0.1f}) {
+    : planner(diagram, jcv_point{0.1f, 0.1f}, gp, voro_means, voro_covs) {
   InitWindow(90, 90, title);
   SetWindowState(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(60);
-  SetImage(imagepath);
+  SetImage(imagepath, false);
   memset(&diagram, 0, sizeof(jcv_diagram));
 }
 
@@ -30,13 +43,43 @@ bool Game::Step() {
   return WindowShouldClose();
 }
 
-void Game::SetImage(const char *filepath) {
-  image = ImageLoader::Create(filepath);
-  SetWindowSize(image->Width(), image->Height());
+void Game::SetImage(const char *filepath, bool use_gp) {
+  if (image.data != nullptr) { // Check if previous image exists
+      delete_image(image);
+  }
+  if (texture.id != 0) { // Check if texture is valid
+      UnloadTexture(texture);
+  }
+
+  image = load_image(filepath);
+  if (use_gp) {
+    GPData gpd = train_gp(image);
+    // Set image to be the output image of GPData
+    delete_image(image);
+    image = gpd.out_img_data;
+    // // Do string manipulation to add _gp to end of filename
+    // std::string new_filepath = append_gp_before_extension(filepath);
+    // // Save file out
+    // write_image(image, new_filepath.c_str());
+    // // Set this file to be the loaded texture by raylib
+    // texture = LoadTexture(new_filepath.c_str());
+  }
+
+  Image rlimg = { image.data, image.width, image.height, 1,
+                (image.channels == 4) ? PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 :
+                (image.channels == 3) ? PIXELFORMAT_UNCOMPRESSED_R8G8B8 :
+                PIXELFORMAT_UNCOMPRESSED_GRAYSCALE,
+                };
+
+  texture = LoadTextureFromImage(rlimg);
+
+  SetWindowSize(image.width, image.height);
   input_points.clear();
   output_points.clear();
   voro_points.clear();
   voro_colours.clear();
+  voro_means.clear();
+  voro_covs.clear();
   memset(&diagram, 0, sizeof(jcv_diagram));
 }
 
@@ -52,27 +95,27 @@ void Game::Screenshot(const char *filepath) {
   BeginTextureMode(target);
   ClearBackground(RAYWHITE); // Clear the texture with a background color
 
-  DrawTexture(image->GetTexture(), 0, 0, WHITE);
+  DrawTexture(texture, 0, 0, WHITE);
   if (!output_points.empty() && voro_points.empty()) {
     for (int i = 0; i < output_points.size(); ++i) {
-      DrawCircle((int)round(output_points[i].x * image->Width()),
-                 (int)round(output_points[i].y * image->Height()), 2.0, RED);
+      DrawCircle((int)round(output_points[i].x * image.width),
+                 (int)round(output_points[i].y * image.height), 2.0, RED);
     }
   }
   if (!voro_points.empty()) {
     const jcv_edge *edge = jcv_diagram_get_edges(&diagram);
     for (int i = 0; i < voro_points.size(); ++i) {
-      DrawCircle((int)round(voro_points[i].x * image->Width()),
-                 (int)round(voro_points[i].y * image->Height()), 2.0, BLUE);
+      DrawCircle((int)round(voro_points[i].x * image.width),
+                 (int)round(voro_points[i].y * image.height), 2.0, BLUE);
     }
     while (edge) {
-      DrawLine((int)round(edge->pos[0].x * image->Width()),
-               (int)round(edge->pos[0].y * image->Height()),
-               (int)round(edge->pos[1].x * image->Width()),
-               (int)round(edge->pos[1].y * image->Height()), BLUE);
+      DrawLine((int)round(edge->pos[0].x * image.width),
+               (int)round(edge->pos[0].y * image.height),
+               (int)round(edge->pos[1].x * image.width),
+               (int)round(edge->pos[1].y * image.height), BLUE);
       edge = jcv_diagram_get_next_edge(edge);
     }
-    planner.Draw(image->Width(), image->Height());
+    planner.Draw(image.width, image.height);
     // DrawColouredVoronoi();
   }
 
@@ -99,6 +142,8 @@ void Game::Sample(int input_size, int output_size) {
   input_points.resize(input_size, cy::Vec2f(0.0f, 0.0f));
   output_points.resize(output_size, cy::Vec2f(0.0f, 0.0f));
   voro_colours.resize(output_size, Color{0, 0, 0, 0});
+  voro_means.resize(output_size, 0.0f);
+  voro_covs.resize(output_size, 0.0f);
 
   for (int i = 0; i < input_size; ++i) {
     input_points[i].x = randomFloat();
@@ -114,8 +159,8 @@ void Game::Sample(int input_size, int output_size) {
   float d_min = d_max * weight_limit_frac;
 
   auto imageWeighting =
-      [image_data = image->Data(), image_width = image->Width(),
-       image_height = image->Height(), alpha = wse.GetParamAlpha(), d_min,
+      [image_data = image.data, image_width = image.width,
+       image_height = image.height, alpha = wse.GetParamAlpha(), d_min,
        weight_factor = weight_factor,
        weight_mult = weight_mult](const cy::Vec2f &p0, const cy::Vec2f &p1,
                                   float dist2, float d_max) -> float {
@@ -169,9 +214,9 @@ bool Game::GenerateVoronoi(int num_iters) {
 }
 
 void Game::RelaxPoints() {
-  const int img_width = image->Width();
-  const int img_height = image->Height();
-  const unsigned char *img_data = image->Data();
+  const int img_width = image.width;
+  const int img_height = image.height;
+  const unsigned char *img_data = image.data;
   const jcv_point dimensions = {.x = static_cast<float>(img_width),
                                 .y = static_cast<float>(img_height)};
   const jcv_site *sites = jcv_diagram_get_sites(&diagram);
@@ -211,6 +256,12 @@ void Game::RelaxPoints() {
     // Used for finding avg colour of a voro region
     std::vector<Color> color_values;
     color_values.clear();
+    // Used for finding avg gp mean of a voro region
+    std::vector<double> mean_values;
+    mean_values.clear();
+    // Used for finding avg gp cov of a voro region
+    std::vector<double> cov_values;
+    cov_values.clear();
     // nested for, loop through all possible ints and pos check them
     float centroid_x = 0, centroid_y = 0;
     float total_weight = 0;
@@ -245,6 +296,11 @@ void Game::RelaxPoints() {
             total_weight += weight;
             // save colour value for working out avg colour of voro
             color_values.push_back(Color{r, g, b, 255});
+            // If this is a GP image then store gp mean and cov
+            if (gp.initialized) {
+              mean_values.push_back(*(gp.mean + (x + img_width * y)));
+              cov_values.push_back(*(gp.covariance + (x + img_width * y)));
+            }
           }
         }
       }
@@ -255,6 +311,7 @@ void Game::RelaxPoints() {
                                               centroid_x / total_weight, 0.1);
       voro_points[site->index].y = util::lerp(voro_points[site->index].y,
                                               centroid_y / total_weight, 0.1);
+      // Mean cell colour calculation
       int sumR = 0, sumG = 0, sumB = 0;
       for (const Color rgba : color_values) {
         sumR += rgba.r;
@@ -268,6 +325,9 @@ void Game::RelaxPoints() {
       voro_colours[site->index] = Color{static_cast<unsigned char>(avgR),
                                         static_cast<unsigned char>(avgG),
                                         static_cast<unsigned char>(avgB), 255};
+      // Mean cell GP mean and cov calculation
+      voro_means[site->index] = mean(mean_values);
+      voro_covs[site->index] = mean(cov_values);
     }
   }
 }
@@ -276,14 +336,14 @@ void Game::DrawColouredVoronoi() {
   const jcv_site *sites = jcv_diagram_get_sites(&diagram);
   for (int i = 0; i < diagram.numsites; ++i) {
     const jcv_site *site = &sites[i];
-    Vector2 center = {site->p.x * image->Width(), site->p.y * image->Height()};
+    Vector2 center = {site->p.x * image.width, site->p.y * image.height};
 
     // Collect edges
     std::vector<Vector2> edges;
     const jcv_graphedge *edge = site->edges;
     while (edge) {
       edges.push_back(
-          {edge->pos[0].x * image->Width(), edge->pos[0].y * image->Height()});
+          {edge->pos[0].x * image.width, edge->pos[0].y * image.height});
       edge = edge->next;
     }
 
@@ -322,27 +382,27 @@ void Game::DrawColouredVoronoi() {
 void Game::Render() {
   BeginDrawing();
   ClearBackground(RAYWHITE);
-  DrawTexture(image->GetTexture(), 0, 0, WHITE);
+  DrawTexture(texture, 0, 0, WHITE);
   if (!output_points.empty()) {
     for (int i = 0; i < output_points.size(); ++i) {
-      DrawCircle((int)round(output_points[i].x * image->Width()),
-                 (int)round(output_points[i].y * image->Height()), 1.0, RED);
+      DrawCircle((int)round(output_points[i].x * image.width),
+                 (int)round(output_points[i].y * image.height), 1.0, RED);
     }
   }
   if (!voro_points.empty()) {
     const jcv_edge *edge = jcv_diagram_get_edges(&diagram);
     for (int i = 0; i < voro_points.size(); ++i) {
-      DrawCircle((int)round(voro_points[i].x * image->Width()),
-                 (int)round(voro_points[i].y * image->Height()), 2.0, BLUE);
+      DrawCircle((int)round(voro_points[i].x * image.width),
+                 (int)round(voro_points[i].y * image.height), 2.0, BLUE);
     }
     while (edge) {
-      DrawLine((int)round(edge->pos[0].x * image->Width()),
-               (int)round(edge->pos[0].y * image->Height()),
-               (int)round(edge->pos[1].x * image->Width()),
-               (int)round(edge->pos[1].y * image->Height()), BLUE);
+      DrawLine((int)round(edge->pos[0].x * image.width),
+               (int)round(edge->pos[0].y * image.height),
+               (int)round(edge->pos[1].x * image.width),
+               (int)round(edge->pos[1].y * image.height), BLUE);
       edge = jcv_diagram_get_next_edge(edge);
     }
-    planner.Draw(image->Width(), image->Height());
+    planner.Draw(image.width, image.height);
     // DrawColouredVoronoi();
   }
   EndDrawing();
